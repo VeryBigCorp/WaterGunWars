@@ -15,8 +15,8 @@
     );
     if($_POST['a'] == "login"){
         fix_inactivity();
-        $u = $_POST['u'];
-        $p = $_POST['p'];
+        $u = mysql_real_escape_string($_POST['u']);
+        $p = mysql_real_escape_string($_POST['p']);
         
         $q = sprintf("SELECT password, admin FROM agent WHERE code_name='%s'",$u);
         $res = mysql_query($q, $con);
