@@ -1,8 +1,8 @@
 <?php
     session_start();
-    $con = mysql_connect("localhost", "root", "");
+    $con = mysql_connect("localhost", "", "");
     mysql_select_db("wgw");
-	
+
     $carriers = array(
             "verizon" => "vtext.com",
             "att" => "txt.att.net",
@@ -15,9 +15,9 @@
     );
     if($_POST['a'] == "login"){
         fix_inactivity();
-        $u = $_POST['u'];
-        $p = $_POST['p'];
-        
+        $u = mysql_real_escape_string($_POST['u']);
+        $p = mysql_real_escape_string($_POST['p']);
+
         $q = sprintf("SELECT password, admin FROM agent WHERE password='%s'",$p);
         $res = mysql_query($q, $con);
         if(mysql_num_rows($res) == 1){
@@ -55,7 +55,7 @@
             echo "<font color='red'>Codename taken! Player not entered.</font>";
             return;
         }
-        
+
         $real = $_POST['rname'];
         $tel = $_POST['tel'];
 		$carrier = $_POST['carrier'];
@@ -175,7 +175,7 @@
             if($_POST['yes'] == "true"){
                 send_sms(get_tel($q['user']), get_carrier($q['user']),"The moderator sided with the killer in the dispute. You were killed by ".get_killer($q['user']));
                 send_sms(get_tel(get_killer($q['user'])), get_carrier(get_killer($q['user'])),"The moderator sided with you in the dispute. Your target is dead.");
-                
+
                 $killer = get_killer($q['user']);
                 mysql_query(sprintf("UPDATE agent SET prompt=false, kia=true, killer='%s' WHERE code_name='%s'", mysql_real_escape_string($killer), mysql_real_escape_string($q['user'])));
                 mysql_query("UPDATE agent SET dispute=false WHERE code_name='".$killer."'");
@@ -223,7 +223,7 @@
         return $r['self_defense_prompt'] == true;
     }
     mysql_close();
-    
+
     function dist_targets(){
         $targets = array();
         $q = mysql_query("SELECT code_name, kia, real_name, admin, inactive FROM agent");
@@ -247,26 +247,26 @@
             mysql_query("UPDATE agent SET target='$targets[$i]' WHERE code_name='".$target."'");
         }
     }
-    
+
     function get_killer($usr){
         $q = mysql_fetch_assoc(mysql_query("SELECT code_name FROM agent WHERE target='$usr'"));
         return $q['code_name'];
     }
-    
+
     function get_real($codename){
         $q = mysql_fetch_assoc(mysql_query("SELECT real_name FROM agent WHERE code_name='$codename'"));
         return $q['real_name'];
     }
-    
+
     function get_target($usr){
         $q = mysql_fetch_assoc(mysql_query("SELECT target FROM agent WHERE code_name='$usr'"));
         return $q['target'];
     }
-    
+
     function get_target_real($usr){
         return get_real(get_target($usr));
     }
-    
+
     function get($val, $usr){
         $q = mysql_query("SELECT $val FROM agent WHERE code_name='".mysql_real_escape_string($usr)."'");
         if(mysql_num_rows($q)==1){
@@ -274,15 +274,15 @@
             return $r[$val];
         }
     }
-    
+
     function get_admin(){
         return "SharkManlinsky";
     }
-    
+
     /**
      * Returns true if codename is available
      */
-    function test_codename($c){ 
+    function test_codename($c){
         $q = mysql_query("SELECT code_name FROM agent WHERE code_name='$c'");
         return mysql_num_rows($q) == 0;
     }
@@ -294,7 +294,7 @@
     function add_notif($usr, $type, $message){
         mysql_query(sprintf("INSERT INTO notif (type, text, user) VALUES ('%s','%s', '%s')",mysql_escape_string($type), mysql_escape_string($message), mysql_escape_string($usr)));
     }
-    
+
     function gen_pass(){
         $characters = "0123456789abcdefghijklmnopqrstuvwxyz";
         $pass = "";
@@ -302,8 +302,8 @@
             $pass .= $characters[rand(0, strlen($characters)-1)];
         return $pass;
     }
-	
-    
+
+
 	function send_sms($num, $carrier, $msg){
 	    $carriers = array(
             "verizon" => "vtext.com",
@@ -319,17 +319,17 @@
             mail($num . "@" . $m, "", $msg,  "From: Water Wars>\r\n");
         }
 	}
-    
+
     function get_tel($usr){
         $q = mysql_fetch_assoc(mysql_query("SELECT tel FROM agent WHERE code_name='$usr'"));
         return $q['tel'];
     }
-    
+
     function get_carrier($usr){
         $q = mysql_fetch_assoc(mysql_query("SELECT carrier FROM agent WHERE code_name='$usr'"));
         return $q['carrier'];
     }
-    
+
     function fix_inactivity(){
         mysql_query("update agent set inactive=true where last_kill <= NOW() - interval 8 day");
         $q = mysql_query("select tel, carrier, sent_inactivity, code_name from agent where inactive=true");
